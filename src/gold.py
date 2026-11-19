@@ -68,4 +68,18 @@ location_metrics.write \
 
 print("Location metrics successfully generated.")
 
+total_jan_trips = df_silver_jan.count()
+
+payment_analytics = df_silver_jan.groupBy("payment_type").agg(
+    F.count("*").alias("total_trips"),
+    F.round(F.sum("total_amount"), 2).alias("total_amount_sum"),
+    F.round(F.avg("total_amount"), 2).alias("avg_total_amount")
+).withColumn(
+    "payment_percentage", F.round(100 * F.col("total_trips") / F.lit(total_jan_trips), 2)
+)
+
+payment_analytics.write.mode("overwrite").parquet("data/gold/payment_analytics")
+
+print("Payment metrics successfully generated.")
+
 spark.stop()
