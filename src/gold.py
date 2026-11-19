@@ -37,4 +37,35 @@ daily_metrics.write \
 
 print("Daily metrics successfully generated.")
 
+pickup_metrics = df_silver_jan.groupBy("PULocationID").agg(
+    F.count("*").alias("pickup_trips"),
+    F.round(F.sum("total_amount"), 2).alias("pickup_amount_sum")
+).withColumnRenamed(
+    "PULocationID", "location_id"
+)
+
+dropoff_metrics = df_silver_jan.groupBy("DOLocationID").agg(
+    F.count("*").alias("dropoff_trips"),
+).withColumnRenamed(
+    "DOLocationID", "location_id"
+)
+
+location_metrics = pickup_metrics.join(
+    dropoff_metrics,
+    on="location_id",
+    how="fullouter"
+)
+
+location_metrics = location_metrics.fillna({
+    "pickup_trips": 0,
+    "pickup_amount_sum": 0.0,
+    "dropoff_trips": 0
+})
+
+location_metrics.write \
+    .mode("overwrite") \
+    .parquet("data/gold/location_analytics")
+
+print("Location metrics successfully generated.")
+
 spark.stop()
