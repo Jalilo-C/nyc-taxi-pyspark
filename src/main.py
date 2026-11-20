@@ -8,6 +8,7 @@ def main():
     spark = SparkSession.builder \
         .appName("NYCTaxiAnalytics") \
         .master("local[*]") \
+        .config("spark.sql.shuffle.partitions", "20") \
         .getOrCreate()
 
     try:
