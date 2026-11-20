@@ -1,37 +1,34 @@
-from pyspark.sql import SparkSession
 from pyspark.sql import functions as F
 
-spark = SparkSession.builder \
-    .appName("NYCTaxiAnalytics") \
-    .master("local[*]") \
-    .getOrCreate()
 
-df_taxi = spark.read.parquet(
-    "data/bronze/yellow_tripdata_2025-01.parquet"
-)
+def build_silver(spark):
 
-df_silver = df_taxi.withColumns({
-    "is_valid_duration":
-        F.col("tpep_dropoff_datetime") > F.col("tpep_pickup_datetime"),
+    df_taxi = spark.read.parquet(
+        "data/bronze/yellow_tripdata_2025-01.parquet"
+    )
 
-    "is_valid_distance":
-        F.col("trip_distance") > 0,
+    df_silver = df_taxi.withColumns({
+        "is_valid_duration":
+            F.col("tpep_dropoff_datetime") > F.col("tpep_pickup_datetime"),
 
-    "has_missing_passengers":
-        F.col("passenger_count").isNull(),
+        "is_valid_distance":
+            F.col("trip_distance") > 0,
 
-    "has_non_positive_passengers":
-        F.coalesce(F.col("passenger_count") <= 0, F.lit(False)),
+        "has_missing_passengers":
+            F.col("passenger_count").isNull(),
 
-    "is_disputed":
-        F.col("payment_type") == 4,
+        "has_non_positive_passengers":
+            F.coalesce(F.col("passenger_count") <= 0, F.lit(False)),
 
-    "has_negative_fare":
-        F.col("fare_amount") < 0
-})
+        "is_disputed":
+            F.col("payment_type") == 4,
 
-df_silver.write \
-    .mode("overwrite") \
-    .parquet("data/silver/nyc_taxi")
+        "has_negative_fare":
+            F.col("fare_amount") < 0
+    })
 
-spark.stop()
+    df_silver.write \
+        .mode("overwrite") \
+        .parquet("data/silver/nyc_taxi")
+
+    print("Silver successfully generated.")
